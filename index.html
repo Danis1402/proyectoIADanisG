@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5ee">
+  <meta name="description" content="Panel de monitoreo del robot recolector de tomates de la Facultad de Ingeniería de la UNA.">
+  <title>Tomate · Robot recolector | FIUNA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f5ee;
+      --surface: #fff;
+      --ink: #20271f;
+      --muted: #72796e;
+      --line: #dfe2d8;
+      --green: #286247;
+      --green-soft: #e4eee4;
+      --tomato: #e45b3e;
+      --mono: "IBM Plex Mono", monospace;
+      --sans: "Space Grotesk", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+    button, a { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--tomato); outline-offset: 3px; }
+
+    .topbar {
+      height: 66px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5vw; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.78);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: 0; }
+    .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; background: var(--green); color: white; font-size: 13px; }
+    .brand strong { display: block; font-size: 19px; line-height: 1.05; }
+    .brand small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 500; }
+    .top-meta { display: flex; align-items: center; gap: 23px; color: var(--muted); font-size: 12px; }
+    .status { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-weight: 600; }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #45a16e; box-shadow: 0 0 0 3px #e4eee4; }
+
+    .layout { width: min(1380px, 100%); margin: auto; padding: 30px 5vw 54px; }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 5px 0 25px; }
+    .eyebrow { margin: 0 0 9px; color: var(--green); font: 500 10px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(25px, 3vw, 34px); line-height: 1.12; letter-spacing: 0; }
+    .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .controls { display: flex; align-items: center; gap: 13px; }
+    .demo-tag { padding: 7px 9px; border: 1px solid #e9c8a2; border-radius: 4px; background: #fff7ec; color: #88572e; font: 500 10px var(--mono); text-transform: uppercase; }
+    .control-button { min-height: 37px; padding: 0 13px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 600; }
+    .control-button:hover { border-color: var(--green); }
+
+    .section-nav { display: flex; gap: 24px; margin-bottom: 17px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+    .section-nav a { padding: 0 0 11px; color: var(--muted); text-decoration: none; font-size: 12px; white-space: nowrap; }
+    .section-nav a:hover { color: var(--green); }
+    .section-title { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; font-size: 15px; letter-spacing: 0; }
+    .section-title span { color: var(--green); font: 500 10px var(--mono); }
+
+    .student-label { display: inline-flex; gap: 5px; align-items: center; margin: 0 0 12px; padding: 7px 10px; border-left: 3px solid var(--tomato); background: #fff; color: var(--muted); font-size: 12px; }
+    .student-label strong { color: var(--ink); }
+    .simulation-section { margin: 22px 0 30px; }
+    .simulation-heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 12px; }
+    .simulation-heading h2 { margin: 0; font-size: 16px; }
+    .simulation-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+    .mode-switch { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 4px; background: #f1f3ed; }
+    .mode-switch label { position: relative; cursor: pointer; }
+    .mode-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .mode-switch span { display: block; padding: 8px 11px; border-radius: 3px; color: var(--muted); font-size: 11px; font-weight: 600; }
+    .mode-switch input:checked + span { background: white; color: var(--green); box-shadow: 0 1px 3px #20271f22; }
+    .mode-switch input:focus-visible + span { outline: 2px solid var(--tomato); outline-offset: 2px; }
+    .simulation-layout { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(265px, .75fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #edf0e9; }
+    .scene-wrap { position: relative; min-width: 0; min-height: 410px; }
+    #robot-canvas { display: block; width: 100%; height: 410px; touch-action: none; }
+    .scene-caption { position: absolute; left: 14px; bottom: 12px; padding: 6px 8px; background: #fff; color: var(--muted); font: 10px var(--mono); }
+    .sim-controls { padding: 17px 18px; border-left: 1px solid var(--line); background: var(--surface); }
+    .mode-help { min-height: 32px; margin: 9px 0 14px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .manual-controls[hidden] { display: none; }
+    .sim-controls h3 { margin: 0 0 13px; font-size: 12px; }
+    .range-control { display: grid; grid-template-columns: 22px 1fr 58px; align-items: center; gap: 8px; margin: 11px 0; }
+    .range-control label { color: var(--muted); font: 11px var(--mono); }
+    .range-control input { width: 100%; accent-color: var(--green); }
+    .range-control output { color: var(--ink); font: 11px var(--mono); text-align: right; }
+    .sim-select-row { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 9px; margin-top: 14px; font-size: 11px; }
+    .sim-select-row label { color: var(--muted); }
+    .sim-select-row select, .sensor-form input { min-width: 0; height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 3px; background: white; color: var(--ink); font: 11px var(--sans); }
+    .solve-status { min-height: 28px; margin: 12px 0; color: var(--green); font-size: 11px; }
+    .solve-status.error { color: #ad3e2a; }
+    .sensor-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .sensor-form label { grid-column: 1 / -1; color: var(--muted); font-size: 10px; }
+    .sensor-form input { font-family: var(--mono); }
+    .sensor-form button { min-height: 34px; padding: 0 10px; border: 1px solid var(--green); border-radius: 3px; background: var(--green); color: white; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .sensor-help { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .tomato-detections { padding: 16px 0 0; }
+    .tomato-detections h3 { margin: 0 0 9px; font-size: 12px; }
+    .tomato-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .tomato-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 43px; padding: 7px 10px; border: 1px solid var(--line); background: white; }
+    .tomato-row strong { display: block; font-size: 11px; }
+    .tomato-row span { display: block; margin-top: 4px; color: var(--muted); font: 10px var(--mono); }
+    .tomato-row button { flex: 0 0 auto; min-height: 29px; padding: 0 8px; border: 1px solid var(--green); border-radius: 3px; background: white; color: var(--green); cursor: pointer; font-size: 10px; font-weight: 600; }
+    .tomato-row button:disabled { border-color: var(--line); color: #9ca197; cursor: not-allowed; }
+    .tomato-empty { padding: 13px 10px; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; }
+
+    .telemetry-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(410px, .92fr); gap: 16px; align-items: stretch; }
+    .panel { min-width: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px 13px; border-bottom: 1px solid var(--line); }
+    .panel-head h2 { margin: 0; font-size: 13px; }
+    .panel-note { color: var(--muted); font: 10px var(--mono); }
+    .position-content { display: grid; grid-template-columns: minmax(210px, .9fr) minmax(160px, .7fr); gap: 20px; padding: 19px; }
+    .coordinate-label { margin: 0 0 6px; color: var(--muted); font-size: 11px; }
+    .coordinate-main { display: flex; align-items: baseline; gap: 8px; }
+    .coordinate-main strong { font: 600 clamp(34px, 4vw, 47px)/1 var(--mono); letter-spacing: 0; }
+    .unit { color: var(--muted); font: 12px var(--mono); }
+    .xyz-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 17px; }
+    .xyz-item { padding: 9px 10px; background: #f7f8f3; }
+    .xyz-item span { display: block; margin-bottom: 5px; color: var(--muted); font: 10px var(--mono); }
+    .xyz-item strong { font: 500 15px var(--mono); }
+    .orientation { display: flex; gap: 18px; margin-top: 15px; }
+    .orientation div { color: var(--muted); font-size: 10px; }
+    .orientation strong { display: block; margin-top: 4px; color: var(--ink); font: 12px var(--mono); }
+    .axis-visual { position: relative; min-height: 180px; align-self: center; overflow: hidden; background-color: #f5f6f0; background-image: linear-gradient(#e5e8df 1px, transparent 1px), linear-gradient(90deg, #e5e8df 1px, transparent 1px); background-size: 24px 24px; }
+    .axis-visual::before { content: ""; position: absolute; left: 17%; right: 9%; top: 70%; height: 2px; background: var(--green); transform: rotate(-28deg); transform-origin: left; }
+    .axis-visual::after { content: ""; position: absolute; width: 11px; height: 11px; left: 65%; top: 36%; border: 2px solid white; border-radius: 50%; background: var(--tomato); box-shadow: 0 0 0 4px #e45b3e33; }
+    .axis-label { position: absolute; bottom: 8px; left: 10px; color: var(--muted); font: 9px var(--mono); }
+
+    .joint-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .joint-table th { padding: 12px 14px; color: var(--muted); font: 10px var(--mono); font-weight: 400; text-align: right; }
+    .joint-table th:first-child, .joint-table td:first-child { text-align: left; }
+    .joint-table td { padding: 11px 14px; border-top: 1px solid #edf0e9; font-family: var(--mono); text-align: right; }
+    .joint-table td:first-child { color: var(--green); font-weight: 600; }
+    .joint-table tbody tr:last-child td { padding-bottom: 14px; }
+    .joint-foot { padding: 0 14px 13px; color: var(--muted); font-size: 10px; }
+
+    .camera-section { margin-top: 30px; }
+    .camera-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .camera-heading .section-title { margin-bottom: 0; }
+    .camera-heading p { margin: 0; color: var(--muted); font-size: 11px; }
+    .camera-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .camera-card { overflow: hidden; }
+    .camera-head { display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid var(--line); }
+    .camera-head strong { font-size: 12px; }
+    .camera-head span { color: var(--muted); font: 10px var(--mono); }
+    .camera-image { position: relative; height: clamp(190px, 24vw, 300px); overflow: hidden; background: #dce4d5; }
+    .camera-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .camera-overlay { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(transparent 72%, #17251c55); }
+    .crosshair { position: absolute; left: 52%; top: 47%; width: 34px; height: 34px; transform: translate(-50%, -50%); border: 1px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #263a2b66; }
+    .crosshair::before, .crosshair::after { content: ""; position: absolute; background: white; }
+    .crosshair::before { width: 46px; height: 1px; left: -7px; top: 16px; }
+    .crosshair::after { height: 46px; width: 1px; left: 16px; top: -7px; }
+    .detection-label { position: absolute; left: calc(52% + 23px); top: calc(47% - 25px); padding: 4px 6px; background: var(--green); color: white; font: 9px var(--mono); }
+    .image-stamp { position: absolute; bottom: 10px; left: 12px; color: white; font: 9px var(--mono); }
+    .camera-empty-state { position: absolute; z-index: 2; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px; background: #f5f5eeee; backdrop-filter: blur(9px); text-align: center; }
+    .camera-empty-state strong { font-size: 13px; }
+    .camera-empty-state span { color: var(--muted); font-size: 10px; }
+    .camera-empty-state[hidden] { display: none; }
+    .camera-info { display: flex; justify-content: space-between; gap: 10px; padding: 11px 14px; color: var(--muted); font: 10px var(--mono); }
+    .camera-info strong { color: var(--ink); font-weight: 500; }
+    .footer { display: flex; justify-content: space-between; gap: 15px; margin-top: 28px; padding-top: 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+
+    @media (max-width: 850px) {
+      .telemetry-grid { grid-template-columns: 1fr; }
+      .simulation-layout { grid-template-columns: 1fr; }
+      .sim-controls { border-top: 1px solid var(--line); border-left: 0; }
+      .scene-wrap { min-height: 350px; }
+      #robot-canvas { height: 350px; }
+      .layout { padding-right: 4vw; padding-left: 4vw; }
+      .topbar { padding: 0 4vw; }
+    }
+    @media (max-width: 560px) {
+      .topbar { height: 58px; }
+      .brand strong { font-size: 16px; }
+      .top-meta { gap: 0; }
+      .top-meta > span:last-child { display: none; }
+      .layout { padding-top: 23px; }
+      .page-heading { align-items: flex-start; flex-direction: column; margin-bottom: 19px; }
+      .controls { width: 100%; justify-content: space-between; }
+      .position-content { grid-template-columns: 1fr; gap: 16px; }
+      .axis-visual { min-height: 135px; }
+      .joint-table th, .joint-table td { padding-right: 9px; padding-left: 9px; }
+      .camera-heading { align-items: flex-start; flex-direction: column; }
+      .camera-grid { grid-template-columns: 1fr; }
+      .camera-image { height: 220px; }
+      .footer { flex-direction: column; }
+      .simulation-heading { align-items: flex-start; flex-direction: column; }
+      .scene-wrap { min-height: 290px; }
+      #robot-canvas { height: 290px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">TR</span><span><strong>FIUNA-UNA</strong><small>Facultad de Ingeniería</small></span></div>
+    <div class="top-meta"><span class="status" id="connection-status">Simulación cinemática</span><span>Robot recolector de tomates</span></div>
+  </header>
+
+  <main class="layout">
+    <section class="page-heading" id="resumen" aria-labelledby="page-title">
+      <div>
+        <p class="student-label">Estudiante: <strong>Danis González</strong></p>
+        <p class="eyebrow">Proyecto integrador · Inteligencia Artificial</p>
+        <h1 id="page-title">Panel del robot recolector</h1>
+        <p class="subtitle">Monitoreo de pose, articulaciones y visión estereoscópica.</p>
+      </div>
+      <div class="controls">
+        <span class="demo-tag">Modelo local</span>
+      </div>
+    </section>
+
+    <nav class="section-nav" aria-label="Secciones del panel">
+      <a href="#resumen">Resumen</a><a href="#simulacion">Simulación 3D</a><a href="#detecciones">Tomates</a><a href="#posicion">End effector</a><a href="#articulaciones">Articulaciones</a><a href="#camaras">Cámaras estéreo</a>
+    </nav>
+
+    <section class="simulation-section" id="simulacion" aria-labelledby="simulation-title">
+      <div class="simulation-heading">
+        <div><h2 id="simulation-title">Movimiento del brazo</h2><p>Modelo cinemático de 4 articulaciones · dimensiones en centímetros</p></div>
+        <div class="controls"><span class="panel-note">L1 10 · L2 40 · L3 30 · L4 20 cm</span><button class="control-button" id="simulation-toggle" type="button" aria-pressed="false">Pausar movimiento</button></div>
+      </div>
+      <div class="simulation-layout">
+        <div class="scene-wrap">
+          <canvas id="robot-canvas" aria-label="Simulación tridimensional del robot articulado"></canvas>
+          <span class="scene-caption">ARRASTRAR PARA GIRAR · RUEDA PARA ACERCAR</span>
+        </div>
+        <div class="sim-controls">
+          <div class="mode-switch" role="radiogroup" aria-label="Modo de operación">
+            <label><input type="radio" name="operation-mode" value="manual" checked><span>Control manual</span></label>
+            <label><input type="radio" name="operation-mode" value="autonomous"><span>Autónomo</span></label>
+          </div>
+          <p class="mode-help" id="mode-help">Controlas el objetivo de la simulación con las coordenadas y el ángulo β.</p>
+          <div class="manual-controls" id="manual-controls">
+            <h3>Objetivo cartesiano · marco de la base</h3>
+            <div class="range-control"><label for="target-x">X</label><input id="target-x" type="range" min="-90" max="90" step="0.5" value="50"><output id="target-x-value">50.0 cm</output></div>
+            <div class="range-control"><label for="target-y">Y</label><input id="target-y" type="range" min="-90" max="90" step="0.5" value="0"><output id="target-y-value">0.0 cm</output></div>
+            <div class="range-control"><label for="target-z">Z</label><input id="target-z" type="range" min="0" max="100" step="0.5" value="30"><output id="target-z-value">30.0 cm</output></div>
+            <div class="range-control"><label for="target-beta">β</label><input id="target-beta" type="range" min="-180" max="180" step="1" value="-90"><output id="target-beta-value">−90°</output></div>
+            <div class="sim-select-row"><label for="elbow-choice">Configuración del codo</label><select id="elbow-choice"><option value="1">Codo abajo</option><option value="-1">Codo arriba</option></select></div>
+            <p class="solve-status" id="solve-status" role="status">Calculando cinemática inversa…</p>
+          </div>
+          <form class="sensor-form" id="sensor-form">
+            <label for="sensor-url">Flujo de sensores por WebSocket</label>
+            <input id="sensor-url" type="url" placeholder="wss://gateway-robot/..." aria-label="URL WebSocket de sensores">
+            <button id="sensor-connect" type="submit">Conectar</button>
+          </form>
+          <p class="sensor-help">Sin cámaras ni sensores detectados. Conecta el gateway WebSocket para habilitar el modo autónomo.</p>
+        </div>
+      </div>
+      <section class="tomato-detections" id="detecciones" aria-labelledby="tomato-title">
+        <h3 id="tomato-title">Tomates detectados · coordenadas en la base</h3>
+        <ul class="tomato-list" id="tomato-list" aria-live="polite"><li class="tomato-empty">Esperando detecciones de las cámaras estéreo.</li></ul>
+      </section>
+    </section>
+
+    <div class="telemetry-grid">
+      <section class="panel" id="posicion" aria-labelledby="position-title">
+        <div class="panel-head"><h2 id="position-title">Posición del end effector</h2><span class="panel-note">BASE ROBOT · XYZ</span></div>
+        <div class="position-content">
+          <div>
+            <p class="coordinate-label">Distancia desde el origen</p>
+            <div class="coordinate-main"><strong id="distance">0.0</strong><span class="unit">mm</span></div>
+            <div class="xyz-grid" aria-label="Coordenadas cartesianas">
+              <div class="xyz-item"><span>X</span><strong id="x-value">0.0</strong></div>
+              <div class="xyz-item"><span>Y</span><strong id="y-value">0.0</strong></div>
+              <div class="xyz-item"><span>Z</span><strong id="z-value">0.0</strong></div>
+            </div>
+          </div>
+          <p class="coordinate-label">La posición se calcula desde las articulaciones del modelo.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="articulaciones" aria-labelledby="joint-title">
+        <div class="panel-head"><h2 id="joint-title">Estado de articulaciones</h2><span class="panel-note">4 ARTICULACIONES</span></div>
+        <table class="joint-table">
+          <thead><tr><th>Articulación</th><th>Posición</th><th>Velocidad</th></tr></thead>
+          <tbody>
+            <tr><td>q1</td><td id="j1-position">0.0°</td><td id="j1-velocity">0.0°/s</td></tr>
+            <tr><td>q2</td><td id="j2-position">0.0°</td><td id="j2-velocity">0.0°/s</td></tr>
+            <tr><td>q3</td><td id="j3-position">0.0°</td><td id="j3-velocity">0.0°/s</td></tr>
+            <tr><td>q4</td><td id="j4-position">0.0°</td><td id="j4-velocity">0.0°/s</td></tr>
+          </tbody>
+        </table>
+        <div class="joint-foot">q1–q4 · grados · velocidad angular en grados/s</div>
+      </section>
+    </div>
+
+    <section class="camera-section" id="camaras" aria-labelledby="camera-title">
+      <div class="camera-heading">
+        <h2 class="section-title" id="camera-title"><span>02</span> Visión estereoscópica</h2>
+        <p>Par estéreo · calibración de cámaras pendiente</p>
+      </div>
+      <div class="camera-grid">
+        <article class="panel camera-card">
+          <div class="camera-head"><strong>Cámara izquierda</strong><span>DEMO · CAM-L</span></div>
+          <div class="camera-image">
+            <img src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&amp;fit=crop&amp;w=1200&amp;q=85" alt="Imagen ilustrativa de tomates para la cámara izquierda">
+            <div class="camera-overlay"></div><span class="crosshair" aria-hidden="true"></span><span class="detection-label">TOMATE 01 · 96.2%</span><span class="image-stamp">CAPTURA SIMULADA · CAM-L</span>
+            <div class="camera-empty-state"><strong>No se detecta la cámara</strong><span>Esperando imagen del sensor estéreo</span></div>
+          </div>
+          <div class="camera-info"><span>Imagen <strong id="camera-kind-left">ilustrativa</strong></span><span id="camera-status-left">Sin flujo en vivo</span></div>
+        </article>
+        <article class="panel camera-card">
+          <div class="camera-head"><strong>Cámara derecha</strong><span>DEMO · CAM-R</span></div>
+          <div class="camera-image">
+            <img src="https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&amp;fit=crop&amp;w=1200&amp;q=85" alt="Imagen ilustrativa de tomates para la cámara derecha">
+            <div class="camera-overlay"></div><span class="crosshair" aria-hidden="true"></span><span class="detection-label">TOMATE 01 · 96.2%</span><span class="image-stamp">CAPTURA SIMULADA · CAM-R</span>
+            <div class="camera-empty-state"><strong>No se detecta la cámara</strong><span>Esperando imagen del sensor estéreo</span></div>
+          </div>
+          <div class="camera-info"><span>Imagen <strong id="camera-kind-right">ilustrativa</strong></span><span id="camera-status-right">Sin flujo en vivo</span></div>
+        </article>
+      </div>
+      <p class="subtitle" id="camera-target">Coordenada del objetivo desde la cámara: esperando detección estéreo.</p>
+    </section>
+
+    <footer class="footer"><span>Estudiante: <strong>Danis González</strong> · Facultad de Ingeniería de la UNA</span><span id="updated-at">Simulación local</span></footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <script>
+    const dimensions = { l1: 10, l2: 40, l3: 30, l4: 20 };
+    const radians = degrees => degrees * Math.PI / 180;
+    const degrees = value => value * 180 / Math.PI;
+    const inputs = ["x", "y", "z", "beta"].map(name => document.querySelector(`#target-${name}`));
+    const outputs = ["x", "y", "z", "beta"].map(name => document.querySelector(`#target-${name}-value`));
+    const status = document.querySelector("#connection-status");
+    const solveStatus = document.querySelector("#solve-status");
+    const modeHelp = document.querySelector("#mode-help");
+    const manualControls = document.querySelector("#manual-controls");
+    const canvas = document.querySelector("#robot-canvas");
+    const toggle = document.querySelector("#simulation-toggle");
+    const sensorForm = document.querySelector("#sensor-form");
+    const sensorUrl = document.querySelector("#sensor-url");
+    const sensorButton = document.querySelector("#sensor-connect");
+    const cameraTarget = document.querySelector("#camera-target");
+    const cameraImages = [...document.querySelectorAll(".camera-image img")];
+    const cameraStamps = [...document.querySelectorAll(".image-stamp")];
+    const cameraEmptyStates = [...document.querySelectorAll(".camera-empty-state")];
+    const cameraIsLive = [false, false];
+    const tomatoList = document.querySelector("#tomato-list");
+    const modeInputs = [...document.querySelectorAll("input[name='operation-mode']")];
+    const state = { mode: "manual", source: "simulation", paused: false, q: [0, 0, 0, 0], targetQ: [0, 0, 0, 0], sensorTarget: null, tomatoes: [], socket: null };
+    let previousQ = [...state.q];
+    let previousFrame = performance.now();
+
+    function solveInverseKinematics(target, elbow) {
+      const beta = radians(target.beta);
+      const a = (target.z - dimensions.l4 * Math.cos(beta) - dimensions.l1) / dimensions.l2;
+      const b = dimensions.l3 / dimensions.l2;
+      const c = (Math.hypot(target.x, target.y) + dimensions.l4 * Math.sin(beta)) / dimensions.l2;
+      const cosineQ3 = (a * a + c * c - (b * b + 1)) / (2 * b);
+      if (cosineQ3 < -1 || cosineQ3 > 1) throw new Error("Objetivo fuera del espacio de trabajo.");
+      const q1 = Math.atan2(target.y, target.x);
+      const q3 = elbow * Math.acos(cosineQ3);
+      const A = 1 + b * Math.cos(q3);
+      const B = b * Math.sin(q3);
+      const q2 = Math.atan2(A * a - B * c, A * c + B * a);
+      const q4 = beta + Math.PI / 2 - q2 - q3;
+      return [q1, q2, q3, q4];
+    }
+
+    function calculatePoints(q) {
+      const [q1, q2, q3, q4] = q;
+      const z2 = dimensions.l1 + dimensions.l2 * Math.sin(q2);
+      const radial2 = dimensions.l2 * Math.cos(q2);
+      const z3 = z2 + dimensions.l3 * Math.sin(q2 + q3);
+      const radial3 = radial2 + dimensions.l3 * Math.cos(q2 + q3);
+      const z4 = z3 + dimensions.l4 * Math.sin(q2 + q3 + q4);
+      const radial4 = radial3 + dimensions.l4 * Math.cos(q2 + q3 + q4);
+      const cosQ1 = Math.cos(q1);
+      const sinQ1 = Math.sin(q1);
+      return [
+        [0, 0, 0],
+        [0, 0, dimensions.l1],
+        [radial2 * cosQ1, radial2 * sinQ1, z2],
+        [radial3 * cosQ1, radial3 * sinQ1, z3],
+        [radial4 * cosQ1, radial4 * sinQ1, z4]
+      ];
+    }
+
+    function selectedTarget() {
+      return { x: Number(inputs[0].value), y: Number(inputs[1].value), z: Number(inputs[2].value), beta: Number(inputs[3].value) };
+    }
+
+    function updateTarget() {
+      outputs[0].value = `${Number(inputs[0].value).toFixed(1)} cm`;
+      outputs[1].value = `${Number(inputs[1].value).toFixed(1)} cm`;
+      outputs[2].value = `${Number(inputs[2].value).toFixed(1)} cm`;
+      outputs[3].value = `${Number(inputs[3].value)}°`;
+      if (state.mode !== "manual" || state.source !== "simulation") return;
+      try {
+        state.targetQ = solveInverseKinematics(selectedTarget(), Number(document.querySelector("#elbow-choice").value));
+        solveStatus.textContent = "Objetivo alcanzable · movimiento interpolado";
+        solveStatus.classList.remove("error");
+      } catch (error) {
+        solveStatus.textContent = error.message;
+        solveStatus.classList.add("error");
+      }
+    }
+
+    inputs.forEach(input => input.addEventListener("input", updateTarget));
+    document.querySelector("#elbow-choice").addEventListener("change", updateTarget);
+    modeInputs.forEach(input => input.addEventListener("change", () => {
+      if (!input.checked) return;
+      state.mode = input.value;
+      state.paused = false;
+      updateModeUI();
+    }));
+    updateTarget();
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#edf0e9");
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 600);
+    camera.up.set(0, 0, 1);
+    camera.position.set(125, -155, 118);
+    const orbitTarget = new THREE.Vector3(0, 0, 43);
+    const cameraOffset = camera.position.clone().sub(orbitTarget);
+    let orbitRadius = cameraOffset.length();
+    let orbitTheta = Math.atan2(cameraOffset.y, cameraOffset.x);
+    let orbitElevation = Math.atan2(cameraOffset.z, Math.hypot(cameraOffset.x, cameraOffset.y));
+    let dragPoint = null;
+    function updateOrbitCamera() {
+      const horizontal = orbitRadius * Math.cos(orbitElevation);
+      camera.position.set(orbitTarget.x + horizontal * Math.cos(orbitTheta), orbitTarget.y + horizontal * Math.sin(orbitTheta), orbitTarget.z + orbitRadius * Math.sin(orbitElevation));
+      camera.lookAt(orbitTarget);
+    }
+    canvas.addEventListener("pointerdown", event => { dragPoint = { x: event.clientX, y: event.clientY }; canvas.setPointerCapture(event.pointerId); });
+    canvas.addEventListener("pointermove", event => {
+      if (!dragPoint) return;
+      orbitTheta -= (event.clientX - dragPoint.x) * 0.008;
+      orbitElevation = Math.max(0.12, Math.min(1.4, orbitElevation + (event.clientY - dragPoint.y) * 0.008));
+      dragPoint = { x: event.clientX, y: event.clientY };
+      updateOrbitCamera();
+    });
+    canvas.addEventListener("pointerup", () => { dragPoint = null; });
+    canvas.addEventListener("pointercancel", () => { dragPoint = null; });
+    canvas.addEventListener("wheel", event => { event.preventDefault(); orbitRadius = Math.max(65, Math.min(280, orbitRadius * Math.exp(event.deltaY * 0.001))); updateOrbitCamera(); }, { passive: false });
+    updateOrbitCamera();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x87937c, 2.1));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    keyLight.position.set(60, -80, 130);
+    scene.add(keyLight);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 220), new THREE.MeshStandardMaterial({ color: 0xf4f5f0, roughness: 1 }));
+    ground.position.z = -0.3;
+    scene.add(ground);
+    const grid = new THREE.GridHelper(200, 20, 0x9eaa9a, 0xd7dcd1);
+    grid.rotation.x = Math.PI / 2;
+    grid.position.z = -0.15;
+    scene.add(grid);
+    scene.add(new THREE.AxesHelper(28));
+
+    function cylinder(radius, color, height = 1) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 20), new THREE.MeshStandardMaterial({ color, roughness: 0.58 }));
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function sphere(radius, color) {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), new THREE.MeshStandardMaterial({ color, roughness: 0.5 }));
+      scene.add(mesh);
+      return mesh;
+    }
+
+    const base = cylinder(8, 0x59645a, dimensions.l1);
+    base.position.z = dimensions.l1 / 2;
+    const links = [cylinder(2.1, 0x286247), cylinder(1.8, 0x65906b), cylinder(1.4, 0x56685c)];
+    const joints = [sphere(3, 0x344a3b), sphere(2.6, 0x286247), sphere(2.4, 0xe45b3e), sphere(2, 0x286247), sphere(1.9, 0x20271f)];
+    const targetMarker = sphere(2.5, 0xe45b3e);
+    const targetStem = cylinder(0.25, 0xe45b3e, 5);
+    targetStem.material.transparent = true;
+    targetStem.material.opacity = 0.55;
+    const detectionGroup = new THREE.Group();
+    scene.add(detectionGroup);
+
+    function createTomatoLabel(text) {
+      const labelCanvas = document.createElement("canvas");
+      labelCanvas.width = 512;
+      labelCanvas.height = 80;
+      const context = labelCanvas.getContext("2d");
+      context.fillStyle = "rgba(32, 39, 31, 0.9)";
+      context.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+      context.font = "28px IBM Plex Mono, monospace";
+      context.fillStyle = "#ffffff";
+      context.fillText(text, 16, 51, 480);
+      const texture = new THREE.CanvasTexture(labelCanvas);
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+      label.scale.set(32, 5, 1);
+      return label;
+    }
+
+    function showTomatoes(detections) {
+      if (!Array.isArray(detections)) throw new Error("tomatoes debe ser una lista de detecciones.");
+      const tomatoes = detections.map((detection, index) => {
+        const coordinates = [Number(detection.x_cm), Number(detection.y_cm), Number(detection.z_cm)];
+        const diameter = detection.diameter_cm === undefined ? 5 : Number(detection.diameter_cm);
+        if (coordinates.some(value => !Number.isFinite(value)) || !Number.isFinite(diameter) || diameter <= 0) {
+          throw new Error("Cada tomate necesita x_cm, y_cm, z_cm y un diámetro positivo.");
+        }
+        return {
+          id: String(detection.id ?? index + 1),
+          x: coordinates[0],
+          y: coordinates[1],
+          z: coordinates[2],
+          diameter,
+          confidence: Number.isFinite(Number(detection.confidence)) ? Number(detection.confidence) : null
+        };
+      });
+
+      detectionGroup.children.forEach(object => {
+        object.traverse(child => {
+          child.geometry?.dispose();
+          if (Array.isArray(child.material)) child.material.forEach(material => material.dispose());
+          else child.material?.dispose();
+          child.material?.map?.dispose();
+        });
+      });
+      detectionGroup.clear();
+      state.tomatoes = tomatoes;
+      tomatoList.replaceChildren();
+
+      if (tomatoes.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "tomato-empty";
+        empty.textContent = "No se detectan tomates en las imágenes actuales.";
+        tomatoList.append(empty);
+        return;
+      }
+
+      tomatoes.forEach((tomato, index) => {
+        const fruit = new THREE.Mesh(new THREE.SphereGeometry(Math.max(1, Math.min(12, tomato.diameter / 2)), 20, 16), new THREE.MeshStandardMaterial({ color: 0xe45b3e, roughness: 0.52 }));
+        fruit.position.set(tomato.x, tomato.y, tomato.z);
+        detectionGroup.add(fruit);
+        const label = createTomatoLabel(`Tomate ${tomato.id} (${tomato.x.toFixed(1)}, ${tomato.y.toFixed(1)}, ${tomato.z.toFixed(1)})`);
+        label.position.set(tomato.x, tomato.y, tomato.z + tomato.diameter / 2 + 3);
+        detectionGroup.add(label);
+
+        const row = document.createElement("li");
+        row.className = "tomato-row";
+        const description = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = `Tomate ${tomato.id} (${tomato.x.toFixed(1)}, ${tomato.y.toFixed(1)}, ${tomato.z.toFixed(1)}) cm`;
+        const details = document.createElement("span");
+        details.textContent = `Diámetro aprox. ${tomato.diameter.toFixed(1)} cm${tomato.confidence === null ? "" : ` · confianza ${(tomato.confidence * 100).toFixed(0)}%`}`;
+        description.append(title, details);
+        const choose = document.createElement("button");
+        choose.type = "button";
+        choose.textContent = "Usar coordenada";
+        choose.disabled = state.mode !== "manual" || state.source !== "simulation";
+        choose.setAttribute("aria-label", `Usar coordenada del tomate ${tomato.id} en el modo manual`);
+        choose.addEventListener("click", () => {
+          inputs[0].value = tomato.x;
+          inputs[1].value = tomato.y;
+          inputs[2].value = tomato.z;
+          inputs.forEach(input => input.dispatchEvent(new Event("input", { bubbles: true })));
+          document.querySelector("#simulacion").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        row.append(description, choose);
+        tomatoList.append(row);
+      });
+    }
+
+    function placeBetween(mesh, start, end) {
+      const from = new THREE.Vector3(...start);
+      const to = new THREE.Vector3(...end);
+      const direction = new THREE.Vector3().subVectors(to, from);
+      mesh.position.copy(from).add(to).multiplyScalar(0.5);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+      mesh.scale.set(1, direction.length(), 1);
+    }
+
+    function resizeScene() {
+      const width = Math.max(1, canvas.clientWidth);
+      const height = Math.max(1, canvas.clientHeight);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    }
+    new ResizeObserver(resizeScene).observe(canvas);
+    resizeScene();
+
+    function updateTelemetry(dt) {
+      const points = calculatePoints(state.q);
+      links.forEach((link, index) => placeBetween(link, points[index + 1], points[index + 2]));
+      joints.forEach((joint, index) => joint.position.set(...points[index]));
+      const position = points[4];
+      const target = state.sensorTarget || (state.mode === "manual" && state.source === "simulation" ? selectedTarget() : null);
+      targetMarker.visible = Boolean(target);
+      targetStem.visible = Boolean(target);
+      if (target) {
+        targetMarker.position.set(target.x, target.y, target.z);
+        targetStem.position.set(target.x, target.y, target.z / 2);
+      }
+      document.querySelector("#x-value").textContent = (position[0] * 10).toFixed(1);
+      document.querySelector("#y-value").textContent = (position[1] * 10).toFixed(1);
+      document.querySelector("#z-value").textContent = (position[2] * 10).toFixed(1);
+      document.querySelector("#distance").textContent = (Math.hypot(...position) * 10).toFixed(1);
+      state.q.forEach((angle, index) => {
+        const velocity = dt > 0 ? degrees(Math.atan2(Math.sin(angle - previousQ[index]), Math.cos(angle - previousQ[index])) / dt) : 0;
+        document.querySelector(`#j${index + 1}-position`).textContent = `${degrees(angle).toFixed(1)}°`;
+        document.querySelector(`#j${index + 1}-velocity`).textContent = `${velocity.toFixed(1)}°/s`;
+      });
+      previousQ = [...state.q];
+      if (state.source === "sensor" && state.sensorTarget) {
+        cameraTarget.textContent = `Objetivo activo (base robot): X ${state.sensorTarget.x.toFixed(1)} cm · Y ${state.sensorTarget.y.toFixed(1)} cm · Z ${state.sensorTarget.z.toFixed(1)} cm`;
+      } else if (state.tomatoes.length > 0) {
+        cameraTarget.textContent = `${state.tomatoes.length} tomate(s) localizado(s) respecto a la base del robot.`;
+      } else if (state.mode === "manual" && state.source === "simulation") {
+        const goal = selectedTarget();
+        cameraTarget.textContent = `Objetivo de simulación (base robot): X ${goal.x.toFixed(1)} cm · Y ${goal.y.toFixed(1)} cm · Z ${goal.z.toFixed(1)} cm`;
+      } else {
+        cameraTarget.textContent = "Esperando detección estéreo para ubicar tomates en la base del robot.";
+      }
+    }
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - previousFrame) / 1000, 0.05);
+      previousFrame = now;
+      if (state.mode === "manual" && state.source === "simulation" && !state.paused) {
+        for (let index = 0; index < state.q.length; index += 1) {
+          const difference = Math.atan2(Math.sin(state.targetQ[index] - state.q[index]), Math.cos(state.targetQ[index] - state.q[index]));
+          state.q[index] += difference * Math.min(1, dt * 3.2);
+        }
+        updateTelemetry(dt);
+      } else if (state.source === "sensor") {
+        for (let index = 0; index < state.q.length; index += 1) {
+          const difference = Math.atan2(Math.sin(state.targetQ[index] - state.q[index]), Math.cos(state.targetQ[index] - state.q[index]));
+          state.q[index] += difference * Math.min(1, dt * 12);
+        }
+        updateTelemetry(dt);
+      } else {
+        updateTelemetry(0);
+      }
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+
+    toggle.addEventListener("click", () => {
+      state.paused = !state.paused;
+      toggle.textContent = state.paused ? "Reanudar movimiento" : "Pausar movimiento";
+      toggle.setAttribute("aria-pressed", String(state.paused));
+    });
+
+    function updateModeUI() {
+      const readOnly = state.mode === "autonomous" || state.source === "sensor";
+      manualControls.hidden = state.mode !== "manual";
+      inputs.forEach(input => { input.disabled = readOnly; });
+      document.querySelector("#elbow-choice").disabled = readOnly;
+      toggle.hidden = state.mode !== "manual" || state.source === "sensor";
+      status.textContent = state.source === "sensor" ? "Sensores en vivo" : state.mode === "autonomous" ? "Autónomo · esperando sensores" : "Simulación cinemática";
+      if (state.mode === "autonomous") {
+        modeHelp.textContent = state.source === "sensor" ? "Solo observación: el brazo sigue encoders y detecciones enviados por el controlador autónomo." : "Modo de solo lectura. Conecta los sensores para visualizar el movimiento autónomo; no se simula ni se envían comandos.";
+      } else if (state.source === "sensor") {
+        modeHelp.textContent = "Telemetría en solo lectura. Desconecta los sensores para controlar la simulación local.";
+      } else {
+        modeHelp.textContent = "Controlas la simulación local con coordenadas y β; no se envían comandos a motores físicos.";
+      }
+      renderTomatoControls();
+    }
+
+    function renderTomatoControls() {
+      tomatoList.querySelectorAll("button").forEach(button => {
+        button.disabled = state.mode !== "manual" || state.source !== "simulation";
+      });
+    }
+
+    function setSensorMode(active) {
+      state.source = active ? "sensor" : "simulation";
+      solveStatus.textContent = active ? "Articulaciones recibidas desde el flujo de sensores." : "Objetivo alcanzable · movimiento interpolado";
+      sensorButton.textContent = active ? "Desconectar" : "Conectar";
+      sensorForm.classList.toggle("connected", active);
+      updateModeUI();
+      if (!active) updateTarget();
+    }
+
+    function applySensorPacket(packet) {
+      const joints = Array.isArray(packet.joints_deg) ? packet.joints_deg : [packet.q1_deg, packet.q2_deg, packet.q3_deg, packet.q4_deg];
+      if (joints.length !== 4 || joints.some(value => !Number.isFinite(Number(value)))) throw new Error("Se esperan cuatro valores joints_deg en grados.");
+      state.targetQ = joints.map(value => radians(Number(value)));
+      if (packet.target_cm && [packet.target_cm.x, packet.target_cm.y, packet.target_cm.z].every(value => Number.isFinite(Number(value)))) {
+        state.sensorTarget = { x: Number(packet.target_cm.x), y: Number(packet.target_cm.y), z: Number(packet.target_cm.z) };
+      }
+      if (Array.isArray(packet.tomatoes)) showTomatoes(packet.tomatoes);
+      [packet.camera_left, packet.camera_right].forEach((source, index) => {
+        if (typeof source === "string" && /^(data:image\/(jpeg|png|webp);base64,|https:\/\/)/i.test(source)) {
+          cameraImages[index].src = source;
+          cameraIsLive[index] = true;
+          cameraEmptyStates[index].hidden = true;
+          cameraStamps[index].textContent = `CAPTURA EN VIVO · CAM-${index === 0 ? "L" : "R"}`;
+          document.querySelector(`#camera-status-${index === 0 ? "left" : "right"}`).textContent = "Flujo activo";
+          document.querySelector(`#camera-kind-${index === 0 ? "left" : "right"}`).textContent = "en vivo";
+        }
+      });
+      document.querySelector(".sensor-help").textContent = `Último paquete recibido · ${new Date().toLocaleTimeString("es-PY")}`;
+    }
+
+    sensorForm.addEventListener("submit", event => {
+      event.preventDefault();
+      if (state.socket && state.socket.readyState <= WebSocket.OPEN) {
+        state.socket.close();
+        return;
+      }
+      const url = sensorUrl.value.trim();
+      if (!/^wss?:\/\//i.test(url)) {
+        document.querySelector(".sensor-help").textContent = "Ingresa una dirección ws:// o wss:// accesible desde este navegador.";
+        return;
+      }
+      try {
+        state.socket = new WebSocket(url);
+        sensorButton.textContent = "Conectando…";
+        state.socket.addEventListener("open", () => setSensorMode(true));
+        state.socket.addEventListener("message", event => {
+          try { applySensorPacket(JSON.parse(event.data)); }
+          catch (error) { document.querySelector(".sensor-help").textContent = `Paquete no válido: ${error.message}`; }
+        });
+        state.socket.addEventListener("close", () => {
+          setSensorMode(false);
+          state.sensorTarget = null;
+          updateTarget();
+          cameraStamps.forEach((stamp, index) => {
+            const side = index === 0 ? "left" : "right";
+            stamp.textContent = `${cameraIsLive[index] ? "ÚLTIMA CAPTURA" : "CAPTURA SIMULADA"} · CAM-${index === 0 ? "L" : "R"}`;
+            document.querySelector(`#camera-status-${side}`).textContent = cameraIsLive[index] ? "Flujo desconectado" : "Sin flujo en vivo";
+            document.querySelector(`#camera-kind-${side}`).textContent = cameraIsLive[index] ? "última captura" : "ilustrativa";
+            cameraEmptyStates[index].hidden = false;
+            cameraIsLive[index] = false;
+          });
+          document.querySelector(".sensor-help").textContent = "Conexión cerrada. Continúa la simulación cinemática local.";
+          state.socket = null;
+        });
+        state.socket.addEventListener("error", () => {
+          document.querySelector(".sensor-help").textContent = "No se pudo conectar. Verifica la URL, TLS y el gateway WebSocket.";
+        });
+      } catch (error) {
+        document.querySelector(".sensor-help").textContent = `No se pudo abrir el flujo: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
